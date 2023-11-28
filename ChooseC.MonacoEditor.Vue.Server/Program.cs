@@ -15,6 +15,7 @@ namespace ChooseC.MonacoEditor.Vue.Server
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+            builder.Services.AddControllers().AddNewtonsoftJson();
             builder.Services.AddControllers()
                 .AddJsonOptions(options =>
             {

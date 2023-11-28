@@ -18,10 +18,15 @@
     //编辑器配置
     const editorConfig = {
         code: {
-            value: `public class Program
+            value: `using System.Collections;
+using System.Collections.Generic;
+public class Program
 {
-    public static void Main(string[] args){
-        Console.WriteLine("Hello Word!");
+    public string Invoke(string str){
+        return "Invoke Result:"+str;
+    }
+    public KeyValuePair<string, string> GetKVResult(string str){
+        return new KeyValuePair<string, string>("Invoke Result",str);
     }
 }`,
             language: "csharp",
@@ -40,7 +45,7 @@
             value: ``,
             language: "plaintext",
             automaticLayout: true, // 自动布局
-            readOnly: true, // 是否为只读模式
+            readOnly: false, // 是否为只读模式
             contextmenu: false, // 上下文菜单
             wordWrap: "on", //自动换行
             minimap: {
@@ -72,7 +77,7 @@
             scrollBeyondLastLine: true, //滚动超出最后一行
         },
         nuget: {
-            value: "Newtonsoft.Json",
+            value: "",
             language: "csharp",
             wordWrap: "off",
             automaticLayout: true, // 自动布局
@@ -140,9 +145,20 @@
             cache: "default",
             body: formbody,
         })
-            .then((res) => res.text())
+            .then((res) => res.json())
             .then((data) => {
-                editor.setValue(data);
+                if (data.error) {
+                    previewRef.value
+                        .getEditor()
+                        .setValue(data.error);
+                } else {
+                    editor.pushUndoStop()
+                    editor.executeEdits(null, [{
+                        text: data.code,
+                        range:editor.getModel().getFullModelRange()
+                    }]);
+                    editor.pushUndoStop()
+                }
             })
             .catch((error) => {
                 previewRef.value
@@ -159,7 +175,7 @@
         contextMenuOrder: 0,
         contextMenuGroupId: "1_modification",
         keybindings: [
-            monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK | monaco.KeyCode.KeyD,
+            monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK, monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyD)
         ],
         run: codeFormat,
     };

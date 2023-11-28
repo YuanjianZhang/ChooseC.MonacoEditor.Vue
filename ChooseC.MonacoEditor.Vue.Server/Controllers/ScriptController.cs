@@ -1,6 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-using System.Reflection;
-using System.Runtime.Serialization;
 using ChooseC.MonacoEditor.Api.Models;
 using CSScriptLib;
 using Microsoft.AspNetCore.Mvc;
@@ -10,6 +7,7 @@ using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.Host.Mef;
 using System.Composition.Hosting;
 using System.Reflection;
+using System.Runtime.Serialization;
 
 namespace ChooseC.MonacoEditor.Vue.Server.Controllers
 {
@@ -20,14 +18,14 @@ namespace ChooseC.MonacoEditor.Vue.Server.Controllers
         [HttpPost("format")]
         public dynamic Format()
         {
+            string script = Request.Form["script"];
             try
             {
-                string script = Request.Form["script"];
-                return FormatCode(script);
+                return new { code = FormatCode(script) };
             }
             catch (Exception ex)
             {
-                return ex;
+                return new { error = ex};
             }
         }
 
@@ -64,7 +62,7 @@ namespace ChooseC.MonacoEditor.Vue.Server.Controllers
         }
 
         [HttpPost("execute")]
-        public async Task<dynamic> Execute()
+        public dynamic Execute()
         {
             try
             {
@@ -123,7 +121,14 @@ namespace ChooseC.MonacoEditor.Vue.Server.Controllers
         public static dynamic Execute(string script, string inparam, string methodname)
         {
             var instance = CSScript.Evaluator.LoadCode(script);
-            return instance.GetType().GetMethod(methodname).Invoke(instance, new object[] { inparam });
+            if (string.IsNullOrWhiteSpace(methodname))
+            {
+                return instance.GetType().GetMethods().First().Invoke(instance, new object?[] { inparam });
+            }
+            else
+            {
+                return instance.GetType().GetMethod(methodname).Invoke(instance, new object?[] { inparam });
+            }
         }
 
         public static void CheckScript(string script, out Exception? error)
