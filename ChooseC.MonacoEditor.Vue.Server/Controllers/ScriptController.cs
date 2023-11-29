@@ -1,4 +1,5 @@
 using ChooseC.MonacoEditor.Api.Models;
+using ChooseC.MonacoEditor.Api.RoslynUtilities;
 using CSScriptLib;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis;
@@ -72,7 +73,7 @@ namespace ChooseC.MonacoEditor.Vue.Server.Controllers
 
                 CSScriptHelper.CheckScript(script, out Exception error);
                 if (error != null) return error;
-                return CSScriptHelper.Execute(script, inparam, methodname);
+                return CSScriptHelper.Execute(script, methodname, inparam.Split(Environment.NewLine));
             }
             catch (Exception ex)
             {
@@ -118,17 +119,23 @@ namespace ChooseC.MonacoEditor.Vue.Server.Controllers
             CSScript.EvaluatorConfig.Access = EvaluatorAccess.Singleton;
         }
 
-        public static dynamic Execute(string script, string inparam, string methodname)
+        public static dynamic Execute(string script, string methodname,params object?[]? inparam)
         {
             var instance = CSScript.Evaluator.LoadCode(script);
-            if (string.IsNullOrWhiteSpace(methodname))
+            var method = string.IsNullOrWhiteSpace(methodname) ? instance.GetType().GetMethods().First() : instance.GetType().GetMethod(methodname);
+            var parametersArray = method.GetParameters();
+            var parameters = new List<object?>();
+            for (var i = 0;i< parametersArray.Length;i++)
             {
-                return instance.GetType().GetMethods().First().Invoke(instance, new object?[] { inparam });
+                object? value = default;
+                try
+                {
+                    value = Convert.ChangeType(inparam.ElementAtOrDefault(i), parametersArray[i].ParameterType);
+                }
+                catch { }
+                parameters.Add(value);
             }
-            else
-            {
-                return instance.GetType().GetMethod(methodname).Invoke(instance, new object?[] { inparam });
-            }
+            return method.Invoke(instance, parameters.ToArray());
         }
 
         public static void CheckScript(string script, out Exception? error)
